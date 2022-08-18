@@ -1,8 +1,11 @@
 from enum import Enum
 from datetime import datetime
+from wsgiref.validate import validator
 from flask_wtf import Form
 from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField
 from wtforms.validators import DataRequired, AnyOf, URL, Regexp, ValidationError
+import re
+import phonenumbers
 
 class Genre(Enum):
     Alternative = 'Alternative'
@@ -97,7 +100,16 @@ def validate_genres(genres):
             raise ValidationError('Not valid')
     return _validate
 
+def validate_phone(self, phone):
+        try:
+            p = phonenumbers.parse(phone.data)
+            if not phonenumbers.is_valid_number(p):
+                raise ValueError()
+        except (phonenumbers.phonenumberutil.NumberParseException, ValueError):
+            raise ValidationError('Invalid phone number')
+
 class ShowForm(Form):
+
     artist_id = StringField(
         'artist_id'
     )
@@ -110,7 +122,9 @@ class ShowForm(Form):
         default= datetime.today()
     )
 
+
 class VenueForm(Form):
+
     name = StringField(
         'name', validators=[DataRequired()]
     )
@@ -129,8 +143,9 @@ class VenueForm(Form):
         'address', validators=[DataRequired()]
     )
     phone = StringField(
-        'phone', validators=[DataRequired(), Regexp("^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$")]
+            'phone', validators=[validate_phone]
     )
+    
     image_link = StringField(
         'image_link'
     )
@@ -173,8 +188,7 @@ class ArtistForm(Form):
         choices=State.items()
     )
     phone = StringField(
-        # TODO implement validation logic for phone 
-        'phone', validators=[DataRequired(), Regexp("^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$")]
+        'phone', validators=[validate_phone]
     )
     image_link = StringField(
         'image_link'
